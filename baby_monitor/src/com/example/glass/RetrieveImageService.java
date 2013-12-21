@@ -51,6 +51,11 @@ import com.google.android.glass.timeline.TimelineManager;
  */
 public class RetrieveImageService extends android.app.Service {
 
+	/**
+	 * Sync stop
+	 */
+	private Object _sync = new Object();
+	
 	public static final String SERVER_ADDRESS = "http://192.168.2.105:8080/";
 	public static final String IMAGE_FILE_TO_SHARE = Environment
 			.getExternalStorageDirectory()
@@ -115,7 +120,12 @@ public class RetrieveImageService extends android.app.Service {
 						e.printStackTrace();
 					}
 
-					updateCard(getApplicationContext(), decodeByteArray);
+					synchronized (_sync) {
+						if (!stop) {
+							updateCard(getApplicationContext(), decodeByteArray);
+						}
+					}
+					
 
 					Log.i(TAG,
 							format("FPS: {0}",
@@ -131,13 +141,17 @@ public class RetrieveImageService extends android.app.Service {
 	@Override
 	public void onDestroy() {
 		Log.d(TAG, "onDestroy called");
+		synchronized (_sync) {
+			stop = true;
+		}
 		if (_liveCard != null && _liveCard.isPublished()) {
 			Log.d(TAG, "Unpublishing LiveCard");
 
 			_liveCard.unpublish();
 			_liveCard = null;
 		}
-		stop = true;
+		
+		
 		super.onDestroy();
 	}
 
